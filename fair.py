@@ -4,6 +4,7 @@ from scipy.optimize import root_scalar
 
 Ma = 5.1352e18 # mass of the atmosphere
 omega_a = 28.96e-3 # air molecular mass
+d = [239, 4.1] # years
 
 def erf_landuse(F0, Eco2_land):
     """ returns the ERF for the landuse given the ERF F0 at time t-1 and the emissions Eco2_land at time t """
@@ -118,3 +119,24 @@ def get_alpha(alpha, T0, Cacc, tau, a):
 def get_Cacc(Et, Cacc0, Ct, Ct0):
     """ returns the total accumulated carbon in land and ocean sinks """
     return Et + Cacc0-(Ct-Ct0)
+
+def get_temperature(T0, q, epsilon, ERF):
+    """ returns the temperature at time t given the temperature T0 at time t-1, the coefficients q=[q1,q2], the efficiencies for the 13 ERFs epsilon, and the 13 ERFs """
+    T1 = 0
+    for i in range(0,2):
+        T1 = T1 + T0*exp(1/d[i])
+        for j in range(0,13):
+            T1 = T1 + q[i]*epsilon[j]*ERF[i,j]*(1-exp(1/d[i]))
+    return T1
+
+def get_q(F2x=3.71, ECS=2.86, TCR=1.53):
+    """ return the coefficients q. If no arguments are provided those are considered to be constants """
+    D = log(2)/log(1.01)
+    a11 = F2x
+    a12 = F2x
+    a21 = F2x*(1-d[0]/D*(1-exp(-D/d[0])))
+    a22 = 1-d[1]/D*(1-exp(D/d[1]))
+    A = np.matrix([[a11,a12],[a21,a22]])
+    b = np.array([ECS,TCR])
+    q = np.linalg.solve(A,b)
+    return q
